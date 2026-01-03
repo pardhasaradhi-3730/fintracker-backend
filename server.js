@@ -7,30 +7,38 @@ const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
-// Middleware
+/* =======================
+   CORS CONFIG (FIXED)
+   ======================= */
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://fintracker-frontend.vercel.app" // 🔴 replace if your Vercel URL is different
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
+/* =======================
+   MIDDLEWARE
+   ======================= */
 app.use(express.json());
 
-// Auth routes
+/* =======================
+   ROUTES
+   ======================= */
 app.use("/api/auth", authRoutes);
 
-// Test route
 app.get("/", (req, res) => {
   res.send("Backend running");
 });
 
-// MongoDB connection options
-const mongooseOptions = {
-  serverSelectionTimeoutMS: 10000, // 10 seconds
-  socketTimeoutMS: 45000, // 45 seconds
-};
-
-// Connect to MongoDB FIRST, then start server
+/* =======================
+   DATABASE CONNECTION
+   ======================= */
 const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
@@ -39,18 +47,19 @@ if (!MONGO_URI) {
 }
 
 mongoose
-  .connect(MONGO_URI, mongooseOptions)
+  .connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+  })
   .then(() => {
     console.log("MongoDB connected successfully");
-    
-    // Start server ONLY after successful DB connection
+
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error("MongoDB connection failed:", err.message);
-    console.error("Error details:", err);
-    process.exit(1); // Exit process if DB connection fails
+    console.error("MongoDB connection failed:", err);
+    process.exit(1);
   });
